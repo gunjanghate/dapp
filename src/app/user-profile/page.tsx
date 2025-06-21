@@ -38,10 +38,10 @@ const UserProfile = () => {
 
   const fetchUserData = async (address: string) => {
     try {
-      // Fetch all purchases with staking status
+      // Fetch purchased projects
       const purchases =
         await projectService.getUserPurchasesWithStakingStatus(address)
-      setPurchasedProjects(purchases.map((p) => p.project).filter(Boolean))
+      setPurchasedProjects(purchases.flatMap((p) => p.project).filter(Boolean) as Project[])
 
       // Fetch created projects
       const { data: created, error: createdError } = await supabase

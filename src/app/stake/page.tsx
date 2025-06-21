@@ -87,14 +87,21 @@ const Stake = () => {
 
       // Filter to only unstaked purchases and transform to the required format
       const availableProducts = purchases
-        .filter((purchase) => !purchase.isStaked)
-        .map((purchase) => ({
-          ...purchase.project,
-          purchase_id: purchase.id,
-        }))
-        .filter(Boolean)
+        .filter((purchase) => !purchase.isStaked && purchase.project && purchase.project.length > 0)
+        .map((purchase) => {
+          const project = purchase.project[0];
+          return {
+            id: project.id,
+            title: project.title,
+            description: project.description,
+            impact_value: project.impact_value,
+            purchase_id: purchase.id,
+            organization: project.organization && project.organization.length > 0 ? project.organization[0] : null,
+          };
+        })
+        .filter(Boolean);
 
-      setAvailableProducts(availableProducts)
+      setAvailableProducts(availableProducts as AvailableProduct[]);
     } catch (error) {
       console.error('Error fetching available products:', error)
       toast.error('Failed to load available products')
@@ -178,22 +185,24 @@ const Stake = () => {
         loading: 'Confirming stake transaction...',
         success: 'Stake deposit confirmed!',
         error: 'Stake transaction failed',
-      })
+      });
 
       // Then create the stake record in the database with the transaction hash
-      const result = await projectService.stakeProject(purchaseId, receipt.hash)
+      if (receipt) {
+        const result = await projectService.stakeProject(purchaseId, receipt.hash);
 
-      if (result.success) {
-        // Refresh both available and staked lists
-        if (walletAddress) {
-          await Promise.all([
-            fetchAvailableProducts(walletAddress),
-            fetchStakedImpactProducts(walletAddress),
-          ])
+        if (result.success) {
+          // Refresh both available and staked lists
+          if (walletAddress) {
+            await Promise.all([
+              fetchAvailableProducts(walletAddress),
+              fetchStakedImpactProducts(walletAddress),
+            ]);
+          }
+          toast.success('Successfully staked');
+        } else {
+          throw new Error(result.error || 'Failed to stake product');
         }
-        toast.success('Successfully staked')
-      } else {
-        throw new Error(result.error || 'Failed to stake product')
       }
     } catch (error: any) {
       console.error('Error staking product:', error)

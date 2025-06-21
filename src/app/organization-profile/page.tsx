@@ -217,7 +217,7 @@ const OrganizationProfile = () => {
                   IMPACT PRODUCT 2023
                 </h2>
                 <Link
-                  to='/stats'
+                  href='/stats'
                   className='flex items-center text-gray-400 hover:text-white'
                 >
                   sale stats <ArrowUpRight className='ml-1 h-4 w-4' />

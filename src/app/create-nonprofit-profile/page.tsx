@@ -167,10 +167,12 @@ const CreateNonProfitProfile = () => {
         error: 'Transaction failed',
       })
 
-      setFormData((prev) => ({
-        ...prev,
-        transactionHash: receipt.hash,
-      }))
+      if (receipt) {
+        setFormData((prev) => ({
+          ...prev,
+          transactionHash: receipt.hash,
+        }))
+      }
 
       setCurrentStep(3)
     } catch (error: any) {

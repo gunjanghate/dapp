@@ -30,16 +30,16 @@ const CreateProject = () => {
           }
         } else {
           toast.error('Please connect your wallet to create a project')
-          navigate('/')
+          router.push('/')
         }
       } catch (error) {
         console.error('Error checking wallet:', error)
-        navigate('/')
+        router.push('/')
       }
     }
 
     checkWallet()
-  }, [navigate])
+  }, [router])
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
