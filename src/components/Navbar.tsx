@@ -43,7 +43,7 @@ const Navbar = () => {
         <div className='flex h-16 items-center justify-between'>
           <div className='flex items-center'>
             <Link href='/' className='text-2xl font-bold text-green-400'>
-              DApp
+              Regen Bazaar
             </Link>
             <div className='hidden md:block'>
               <div className='ml-10 flex items-baseline space-x-4'>
