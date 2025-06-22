@@ -47,30 +47,51 @@ src/
 
 ## 🏗️ Installation & Setup
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd dapp
-   ```
+## Prerequisites
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+### Node.js LTS
 
-3. **Environment Setup**
-   - Configure Supabase credentials
-   - Set up OpenAI API key
-   - Configure blockchain network settings
+Follow official [nodejs.org install insruction](https://nodejs.org/en/download)
 
-4. **Run development server**
-   ```bash
-   npm run dev
-   ```
+Verify Node.js and npm (Node Package Manager, comes with Node.js) installation:
 
-5. **Build for production**
-   ```bash
-   npm run build
+```bash
+node -v
+npm -v
+```
+
+### (Optional) bun
+
+Bun is a fast JavaScript all-in-one toolkit. Install it using the following command:
+
+```bash
+curl -fsSL https://bun.sh/install | bash
+```
+
+OR
+
+```bash
+npm -g i bun
+```
+
+> ⚠️
+>
+> Choose npm or bun to use.
+
+## Local setup
+
+```bash
+npm|bun install
+```
+
+**Run the development server:**
+
+```bash
+npm|bun run dev
+```
+
+**Open the application:**
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
    ```
 
 ## 🌱 Parent Project: EcoSynthesisX

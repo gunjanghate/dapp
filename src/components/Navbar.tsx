@@ -1,181 +1,172 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, Menu, X, User } from 'lucide-react';
-import { disconnectWallet } from '../lib/web3';
-import toast from 'react-hot-toast';
-import WalletModal from './WalletModal';
-import { useWallet } from '../context/WalletContext';
+'use client'
+import React, { useState } from 'react'
+import Link from 'next/link'
+import { LogOut, Menu, X, User } from 'lucide-react'
+import { useWallet } from '../context/WalletContext'
+import WalletModal from './WalletModal'
+import toast from 'react-hot-toast'
 
 const Navbar = () => {
-  const { walletAddress, connect, disconnect, isConnecting } = useWallet();
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [hasPurchasedProducts, setHasPurchasedProducts] = useState(true); // Set to true to always show Stake
-  const [rebazBalance, setRebazBalance] = useState(150);
-  const [rwiRank, setRwiRank] = useState(70);
-  const navigate = useNavigate();
-
-  const handleDisconnectWallet = async () => {
-    try {
-      await disconnectWallet();
-      disconnect();
-      toast.success('Wallet disconnected successfully');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to disconnect wallet');
-    }
-  };
+  const { walletAddress, connect, disconnect, isConnecting } = useWallet()
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const handleConnectWallet = async (walletType: string, manualAddress?: string) => {
     try {
-      await connect(walletType, manualAddress);
-      setIsWalletModalOpen(false);
-    } catch (error: any) {
-      if (error.message.includes('Please connect your wallet')) {
-        return;
+      await connect(walletType, manualAddress)
+      setIsWalletModalOpen(false)
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message || 'Failed to connect wallet')
+      } else {
+        toast.error('An unexpected error occurred')
       }
-      toast.error(error.message || 'Failed to connect wallet');
     }
-  };
+  }
+
+  const handleDisconnect = async () => {
+    try {
+      await disconnect()
+      toast.success('Wallet disconnected successfully')
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message || 'Failed to disconnect wallet')
+      } else {
+        toast.error('An unexpected error occurred')
+      }
+    }
+  }
 
   return (
-    <nav className="bg-black sticky top-0 z-50 border-b border-gray-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14">
-          {/* Left Section - User Profile */}
-          <div className="flex items-center">
-            {walletAddress ? (
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <User className="h-5 w-5 text-gray-400" />
-                  <span className="text-white font-medium">Paul Burg</span>
-                </div>
-                <div className="flex items-center space-x-4 text-sm">
-                  <span className="text-gray-400">RWI RANK: <span className="text-[#B4F481]">{rwiRank}</span></span>
-                  <span className="text-gray-400">voREBAZ: <span className="text-[#B4F481]">{rebazBalance}</span></span>
-                </div>
-                <button
-                  onClick={handleDisconnectWallet}
-                  className="flex items-center space-x-1 text-gray-400 hover:text-white transition-colors"
+    <nav className='sticky top-0 z-50 border-b border-gray-700 bg-[#111111]'>
+      <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'>
+        <div className='flex h-16 items-center justify-between'>
+          <div className='flex items-center'>
+            <Link href='/' className='text-2xl font-bold text-green-400'>
+              Regen Bazaar
+            </Link>
+            <div className='hidden md:block'>
+              <div className='ml-10 flex items-baseline space-x-4'>
+                <Link
+                  href='/about'
+                  className='rounded-md bg-green-500 px-3 py-1 text-sm font-medium text-white transition-colors hover:bg-green-600'
                 >
-                  <LogOut className="h-4 w-4" />
-                  <span className="text-sm">Disconnect</span>
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-2">
-                <User className="h-5 w-5 text-gray-400" />
-                <button
-                  onClick={() => setIsWalletModalOpen(true)}
-                  disabled={isConnecting}
-                  className="bg-[#B4F481] text-black px-4 py-1.5 text-sm rounded hover:bg-[#9FE070] transition-colors disabled:opacity-50"
+                  About
+                </Link>
+                <Link
+                  href='/projects'
+                  className='rounded-md bg-green-500 px-3 py-1 text-sm font-medium text-white transition-colors hover:bg-green-600'
                 >
-                  {isConnecting ? 'Connecting...' : 'Connect Wallet'}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Right Section - Navigation */}
-          <div className="flex items-center space-x-2">
-            <div className="hidden md:flex items-center space-x-2">
-              <Link 
-                to="/profile" 
-                className="px-4 py-1.0 text-sm rounded bg-[#1D211A] text-lime-400 hover:bg-[#2A462C] hover:text-gray-200 transition-colors"
-              >
-                Dashboard
-              </Link>
-              <Link 
-                to="/projects" 
-                className="px-4 py-1.0 text-sm rounded bg-[#1D211A] text-lime-400 hover:bg-[#2A462C] hover:text-gray-200 transition-colors"
-              >
-                Purchase
-              </Link>
-              <Link 
-                to="/create-profile" 
-                className="px-4 py-1.0 text-sm rounded bg-[#1D211A] text-lime-400 hover:bg-[#2A462C] hover:text-gray-200 transition-colors"
-              >
-                Tokenize
-              </Link>
-              {hasPurchasedProducts && (
-                <Link 
-                  to="/stake" 
-                  className="px-4 py-1.0 text-sm rounded bg-[#1D211A] text-lime-400 hover:bg-[#2A462C] hover:text-gray-200 transition-colors"
+                  Projects
+                </Link>
+                <Link
+                  href='/organizations'
+                  className='rounded-md bg-green-500 px-3 py-1 text-sm font-medium text-white transition-colors hover:bg-green-600'
+                >
+                  Organizations
+                </Link>
+                <Link
+                  href='/leaderboard'
+                  className='rounded-md bg-green-500 px-3 py-1 text-sm font-medium text-white transition-colors hover:bg-green-600'
+                >
+                  Leaderboard
+                </Link>
+                <Link
+                  href='/stake'
+                  className='rounded-md bg-green-500 px-3 py-1 text-sm font-medium text-white transition-colors hover:bg-green-600'
                 >
                   Stake
                 </Link>
-              )}
-              {rebazBalance > 100 && (
-                <Link 
-                  to="/vote" 
-                  className="px-4 py-1.0 text-sm rounded bg-[#1D211A] text-gray-400 hover:bg-[#2A462C] hover:text-gray-200 transition-colors"
+              </div>
+            </div>
+          </div>
+          <div className='hidden md:block'>
+            <div className='ml-4 flex items-center space-x-4 md:ml-6'>
+              <Link href='/create-project' className='rounded-md bg-green-500 px-4 py-2 text-sm font-medium text-black hover:bg-green-600'>
+                Create Project
+              </Link>
+              {walletAddress ? (
+                <div className='flex items-center space-x-4'>
+                  <span className='text-sm font-medium text-gray-300'>{`${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}`}</span>
+                  <button
+                    onClick={handleDisconnect}
+                    className='flex items-center space-x-1 text-gray-300 hover:text-green-400'
+                  >
+                    <LogOut className='h-4 w-4' />
+                    <span className='text-sm'>Disconnect</span>
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsWalletModalOpen(true)}
+                  disabled={isConnecting}
+                  className='rounded bg-green-500 px-4 py-2 text-sm text-black transition-colors hover:bg-green-600 disabled:opacity-50'
                 >
-                  Vote
-                </Link>
+                  {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+                </button>
               )}
             </div>
-
+          </div>
+          <div className='flex items-center md:hidden'>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-1.5 text-gray-400 hover:text-white rounded hover:bg-gray-800"
+              className='inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white'
             >
-              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {isMenuOpen ? (
+                <X className='h-6 w-6' />
+              ) : (
+                <Menu className='h-6 w-6' />
+              )}
             </button>
           </div>
         </div>
-
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="md:hidden py-2 space-y-1">
-            <Link 
-              to="/profile" 
-              className="block px-3 py-1.5 text-sm text-gray-400 hover:bg-gray-800 hover:text-white rounded"
-            >
-              Dashboard
-            </Link>
-            <Link 
-              to="/projects" 
-              className="block px-3 py-1.5 text-sm text-gray-400 hover:bg-gray-800 hover:text-white rounded"
-            >
-              Purchase
-            </Link>
-            <Link 
-              to="/create-profile" 
-              className="block px-3 py-1.5 text-sm text-gray-400 hover:bg-gray-800 hover:text-white rounded"
-            >
-              Tokenize
-            </Link>
-            {hasPurchasedProducts && (
-              <Link
-                to="/stake"
-                className="block px-3 py-1.5 text-sm text-gray-400 hover:bg-gray-800 hover:text-white rounded"
-              >
-                Stake
-              </Link>
-            )}
-            {rebazBalance > 100 && (
-              <Link 
-                to="/vote" 
-                className="block px-3 py-1.5 text-sm text-gray-400 hover:bg-gray-800 hover:text-white rounded"
-              >
-                Vote
-              </Link>
-            )}
-            <div className="border-t border-gray-800 my-2"></div>
-            <Link 
-              to="/about" 
-              className="block px-3 py-1.5 text-sm text-gray-400 hover:bg-gray-800 hover:text-white rounded"
-            >
-              About Us
-            </Link>
-            <Link 
-              to="/leaderboard" 
-              className="block px-3 py-1.5 text-sm text-gray-400 hover:bg-gray-800 hover:text-white rounded"
-            >
-              Leaderboard
-            </Link>
-          </div>
-        )}
       </div>
+
+      {isMenuOpen && (
+        <div className='border-t border-gray-700 bg-[#111111] md:hidden'>
+          <div className='space-y-1 px-2 pt-2 pb-3 sm:px-3'>
+            <Link href='/about' className='block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'>About</Link>
+            <Link href='/projects' className='block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'>Projects</Link>
+            <Link href='/organizations' className='block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'>Organizations</Link>
+            <Link href='/leaderboard' className='block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'>Leaderboard</Link>
+            <Link href='/stake' className='block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'>Stake</Link>
+            <Link href='/create-project' className='block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'>Create Project</Link>
+            {!walletAddress && (
+              <button
+                onClick={() => {
+                  setIsWalletModalOpen(true);
+                  setIsMenuOpen(false);
+                }}
+                disabled={isConnecting}
+                className='block w-full rounded-md px-3 py-2 text-left text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'
+              >
+                {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+              </button>
+            )}
+          </div>
+          {walletAddress && (
+            <div className='border-t border-gray-700 pt-4 pb-3'>
+              <div className='flex items-center px-5'>
+                <User className='h-8 w-8 text-gray-400' />
+                <div className='ml-3'>
+                  <div className='text-base font-medium leading-none text-white'>{`${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}`}</div>
+                </div>
+              </div>
+              <div className='mt-3 space-y-1 px-2'>
+                <button
+                  onClick={() => {
+                    handleDisconnect();
+                    setIsMenuOpen(false);
+                  }}
+                  className='block w-full rounded-md px-3 py-2 text-left text-base font-medium text-gray-400 hover:bg-gray-700 hover:text-white'
+                >
+                  Disconnect
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <WalletModal
         isOpen={isWalletModalOpen}
@@ -183,7 +174,7 @@ const Navbar = () => {
         onSelectWallet={handleConnectWallet}
       />
     </nav>
-  );
-};
+  )
+}
 
-export default Navbar;
+export default Navbar
