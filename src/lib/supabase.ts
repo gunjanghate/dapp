@@ -37,8 +37,8 @@ async function fetchWithRetry(
         throw new Error(`HTTP error! status: ${response.status}`)
       }
       return response
-    } catch (error: any) {
-      lastError = error
+    } catch (error: unknown) {
+      lastError = error instanceof Error ? error : new Error(String(error))
       console.warn(`Fetch attempt ${i + 1} failed:`, error)
 
       // Don't wait on the last attempt
@@ -54,33 +54,45 @@ async function fetchWithRetry(
 }
 
 // Helper function to check if error is a network error
-export function isNetworkError(error: any): boolean {
-  return (
-    error.message === 'Failed to fetch' ||
-    error.message === 'Network request failed' ||
-    error.message.includes('network') ||
-    error.code === 'ECONNABORTED' ||
-    error.code === 'ETIMEDOUT'
-  )
+export function isNetworkError(error: unknown): boolean {
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = (error as { message: string }).message
+    return (
+      message === 'Failed to fetch' ||
+      message === 'Network request failed' ||
+      message.includes('network')
+    )
+  }
+  if (error && typeof error === 'object' && 'code' in error) {
+    const code = (error as { code: string }).code
+    return code === 'ECONNABORTED' || code === 'ETIMEDOUT'
+  }
+  return false
 }
 
 // Helper function to handle Supabase errors consistently
-export function handleSupabaseError(error: any): string {
+export function handleSupabaseError(error: unknown): string {
   if (isNetworkError(error)) {
     return 'Network connection error. Please check your internet connection and try again.'
   }
 
-  if (error.code === '23505') {
-    // Unique violation
-    return 'This record already exists.'
-  }
+  if (error && typeof error === 'object' && 'code' in error) {
+    const code = (error as { code: string }).code
+    if (code === '23505') {
+      // Unique violation
+      return 'This record already exists.'
+    }
 
-  if (error.code === '23503') {
-    // Foreign key violation
-    return 'Referenced record does not exist.'
+    if (code === '23503') {
+      // Foreign key violation
+      return 'Referenced record does not exist.'
+    }
   }
 
   // Log unexpected errors for debugging
   console.error('Unexpected Supabase error:', error)
-  return error.message || 'An unexpected error occurred. Please try again.'
+  if (error instanceof Error) {
+    return error.message
+  }
+  return 'An unexpected error occurred. Please try again.'
 }

@@ -51,12 +51,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
     checkConnection()
 
-    // Cleanup subscription
-    return () => {
-      if (typeof unsubscribe === 'function') {
-        unsubscribe()
-      }
-    }
+    // Cleanup subscription is handled by the return value of subscribeToAccountChanges
+    return unsubscribe
   }, [])
 
   const connect = async (walletType?: string, manualAddress?: string) => {
@@ -70,7 +66,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         setWalletAddress(address)
         toast.success('Wallet connected successfully!')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Wallet connection error:', error)
       throw error
     } finally {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { X, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { X, CheckCircle2 } from 'lucide-react'
 import { projectService } from '../lib/projectService'
 import { depositVault } from '../lib/contracts/depositVault'
 import toast from 'react-hot-toast'
@@ -53,29 +53,43 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
         error: 'Transaction failed',
       })
 
-      // Then create the purchase record in the database with the transaction hash
-      const result = await projectService.purchaseProject(
-        project.id,
-        walletAddress,
-        project.funding_goal,
-        receipt.hash
-      )
+      if (receipt) {
+        // Then create the purchase record in the database with the transaction hash
+        const result = await projectService.purchaseProject(
+          project.id,
+          walletAddress,
+          project.funding_goal,
+          receipt.hash
+        )
 
-      if (result.success) {
-        setStep('complete')
-        onPurchaseComplete()
-        toast.success('Purchase successful!')
+        if (result.success) {
+          setStep('complete')
+          onPurchaseComplete()
+          toast.success('Purchase successful!')
+        } else {
+          throw new Error(result.error || 'Purchase failed')
+        }
       } else {
-        throw new Error(result.error || 'Purchase failed')
+        throw new Error('Transaction failed: no receipt received.')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Purchase error:', error)
-      if (error.code === 'ACTION_REJECTED') {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'ACTION_REJECTED'
+      ) {
         toast.error('Transaction rejected by user')
-      } else if (error.message.includes('insufficient funds')) {
+      } else if (
+        error instanceof Error &&
+        error.message.includes('insufficient funds')
+      ) {
         toast.error('Insufficient funds in wallet')
       } else {
-        toast.error(error.message || 'Failed to complete purchase')
+        toast.error(
+          error instanceof Error ? error.message : 'Failed to complete purchase'
+        )
       }
       setStep('confirmation')
     } finally {

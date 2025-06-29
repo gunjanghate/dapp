@@ -2,7 +2,7 @@
 import { FEATURES } from './config'
 
 export async function generateProfileImage(
-  description: string
+  _description: string
 ): Promise<string> {
   if (!FEATURES.IMAGE_GENERATION) {
     // Return a placeholder image URL when image generation is disabled

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { supabase } from '../../lib/supabase'
 import { ArrowUpRight, Loader2 } from 'lucide-react'
 import Link from 'next/link'
@@ -32,9 +33,9 @@ const Organizations = () => {
     const checkWallet = async () => {
       if (typeof window.ethereum !== 'undefined') {
         try {
-          const accounts = await window.ethereum.request({
+          const accounts = (await window.ethereum.request({
             method: 'eth_accounts',
-          })
+          })) as string[]
           if (accounts && accounts[0]) {
             setWalletAddress(accounts[0])
             await fetchProjects()
@@ -118,10 +119,11 @@ const Organizations = () => {
                 >
                   <div className='relative aspect-square bg-gray-800'>
                     {project.organization?.logo_url && (
-                      <img
+                      <Image
                         src={project.organization.logo_url}
                         alt={project.title}
-                        className='h-full w-full object-cover'
+                        layout='fill'
+                        objectFit='cover'
                       />
                     )}
                   </div>

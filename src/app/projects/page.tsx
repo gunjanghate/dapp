@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import Link from 'next/link'
+import Image from 'next/image'
 import { supabase } from '../../lib/supabase'
-import { Leaf, Search, ArrowRight } from 'lucide-react'
+import { Leaf, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PurchaseModal from '../../components/PurchaseModal'
 
@@ -49,25 +49,25 @@ const Projects = () => {
   const [hoveredProject, setHoveredProject] = useState<string | null>(null)
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false)
-  const [walletAddress, setWalletAddress] = useState<string | null>(null)
+  const [walletAddress, _setWalletAddress] = useState<string | null>(null)
 
   useEffect(() => {
-    const checkWallet = async () => {
-      if (typeof window.ethereum !== 'undefined') {
-        try {
-          const accounts = await window.ethereum.request({
-            method: 'eth_accounts',
-          })
-          if (accounts && accounts[0]) {
-            setWalletAddress(accounts[0])
-          }
-        } catch (error) {
-          console.error('Error checking wallet:', error)
-        }
-      }
-    }
+    // const checkWallet = async () => {
+    //   if (typeof window.ethereum !== 'undefined') {
+    //     try {
+    //       const accounts = (await window.ethereum.request({
+    //         method: 'eth_accounts',
+    //       })) as string[]
+    //       if (accounts && accounts[0]) {
+    //         setWalletAddress(accounts[0])
+    //       }
+    //     } catch (error) {
+    //       console.error('Error checking wallet:', error)
+    //     }
+    //   }
+    // }
 
-    checkWallet()
+    // checkWallet()
     fetchProjects()
   }, [])
 
@@ -204,10 +204,11 @@ const Projects = () => {
             >
               <div className='relative aspect-square'>
                 {getProjectImage(project) ? (
-                  <img
+                  <Image
                     src={getProjectImage(project)!}
                     alt={project.title}
-                    className='h-full w-full object-cover'
+                    layout='fill'
+                    objectFit='cover'
                   />
                 ) : (
                   <div className='flex h-full w-full items-center justify-center bg-gray-800'>

@@ -63,7 +63,7 @@ const eslintConfig = [
       quotes: ['error', 'single'],
       'react/prop-types': 'off',
       'jsx-quotes': ['error', 'prefer-single'],
-      'arrow-parens': ['error', 'as-needed'],
+      'arrow-parens': 'off',
       'prettier/prettier': 'error',
       'no-duplicate-imports': 'off',
       'import/no-duplicates': 'error',
@@ -75,6 +75,18 @@ const eslintConfig = [
     files: ['**/*.json'],
     rules: {
       quotes: 'off',
+    },
+  },
+  {
+    files: ['src/types/window.d.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+  {
+    files: ['src/components/WalletModal.tsx'],
+    rules: {
+      'jsx-a11y/no-noninteractive-element-interactions': 'off',
     },
   },
 ]

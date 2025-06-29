@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import Image from 'next/image'
 import { supabase } from '../../lib/supabase'
 import { Loader2 } from 'lucide-react'
 
@@ -72,10 +73,12 @@ const ProjectDetails = () => {
             {project.title}
           </h1>
           <div className='mb-6 flex items-center'>
-            <img
+            <Image
               src={project.organization.logo_url}
               alt={project.organization.name}
-              className='mr-4 h-12 w-12 rounded-full'
+              width={48}
+              height={48}
+              className='mr-4 rounded-full'
             />
             <div>
               <p className='text-white'>{project.organization.name}</p>

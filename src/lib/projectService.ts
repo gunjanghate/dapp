@@ -1,5 +1,4 @@
 import { supabase } from './supabase'
-import toast from 'react-hot-toast'
 
 export interface PurchaseResult {
   success: boolean
@@ -80,11 +79,12 @@ export const projectService = {
         purchaseId: purchase.id,
         transactionHash,
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error purchasing project:', error)
       return {
         success: false,
-        error: error.message,
+        error:
+          error instanceof Error ? error.message : 'An unknown error occurred',
       }
     }
   },
@@ -92,7 +92,7 @@ export const projectService = {
   // Create a new project with transaction details and random values
   async createProject(
     projectData: ProjectData
-  ): Promise<{ success: boolean; project?: any; error?: string }> {
+  ): Promise<{ success: boolean; project?: ProjectData; error?: string }> {
     try {
       const { price, impact } = generateRandomValues()
 
@@ -114,11 +114,12 @@ export const projectService = {
         success: true,
         project: data,
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating project:', error)
       return {
         success: false,
-        error: error.message,
+        error:
+          error instanceof Error ? error.message : 'An unknown error occurred',
       }
     }
   },
@@ -254,45 +255,39 @@ export const projectService = {
       // Calculate voting power
       const baseVotingPower = 10
       const votingPowerMultiplier = lockPeriodDays / 30
-      const finalVotingPower = Math.floor(
-        baseVotingPower * votingPowerMultiplier
-      )
+      Math.floor(baseVotingPower * votingPowerMultiplier)
 
-      // Create the stake
+      // Calculate lock end date
+      const lockEndDate = new Date()
+      lockEndDate.setDate(lockEndDate.getDate() + lockPeriodDays)
+
       const { data: stake, error: stakeError } = await supabase
         .from('stakes')
-        .insert([
-          {
-            purchase_id: purchaseId,
-            iv_locked: 1,
-            apr: finalAPR,
-            voting_power: finalVotingPower,
-            lock_end_date: new Date(
-              Date.now() + lockPeriodDays * 24 * 60 * 60 * 1000
-            ).toISOString(),
-            status: 'active',
-            transaction_hash: transactionHash,
-          },
-        ])
+        .insert({
+          purchase_id: purchaseId,
+          iv_locked: 1, // Default impact value locked
+          apr: finalAPR,
+          voting_power: 1, // Default voting power
+          lock_end_date: lockEndDate.toISOString(),
+          status: 'active',
+          transaction_hash: transactionHash,
+        })
         .select()
-        .limit(1)
+        .single()
 
       if (stakeError) throw stakeError
 
-      if (!stake || stake.length === 0) {
-        throw new Error('Failed to create stake record')
-      }
-
       return {
         success: true,
-        stakeId: stake[0].id,
+        stakeId: stake.id,
         transactionHash,
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error staking project:', error)
       return {
         success: false,
-        error: error.message || 'Failed to stake project',
+        error:
+          error instanceof Error ? error.message : 'An unknown error occurred',
       }
     }
   },
