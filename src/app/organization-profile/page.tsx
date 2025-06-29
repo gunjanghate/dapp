@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
@@ -29,20 +29,16 @@ const OrganizationProfile = () => {
   >('dashboard')
   const [products2024, setProducts2024] = useState<ImpactProduct[]>([])
   const [products2023, setProducts2023] = useState<ImpactProduct[]>([])
-  const [stats, setStats] = useState<OrganizationStats>({
+  const [stats, _setStats] = useState<OrganizationStats>({
     ipCollections: 10,
     ipSold: 150,
     proposalsSubmitted: 5,
     qfParticipated: 3,
   })
 
-  useEffect(() => {
-    fetchOrganizationData()
-  }, [id])
-
-  const fetchOrganizationData = async () => {
+  const fetchOrganizationData = useCallback(async () => {
     try {
-      const { data: projects, error } = await supabase
+      const { data: _projects, error } = await supabase
         .from('projects')
         .select('*')
         .eq('organization_id', id)
@@ -105,7 +101,11 @@ const OrganizationProfile = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => {
+    fetchOrganizationData()
+  }, [fetchOrganizationData])
 
   const renderProductGrid = (products: ImpactProduct[]) => (
     <div className='grid grid-cols-1 gap-6 md:grid-cols-4'>

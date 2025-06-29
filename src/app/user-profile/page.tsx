@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { Plus, Loader2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { getProvider } from '../../lib/web3'
 import { projectService } from '../../lib/projectService'
 import { useWallet } from '../../context/WalletContext'
 import toast from 'react-hot-toast'
@@ -41,7 +41,12 @@ const UserProfile = () => {
       // Fetch purchased projects
       const purchases =
         await projectService.getUserPurchasesWithStakingStatus(address)
-      setPurchasedProjects(purchases.flatMap((p) => p.project).filter(Boolean) as Project[])
+      setPurchasedProjects(
+        purchases
+          .flatMap((p) => p.project)
+          .filter((p) => p?.organization?.[0])
+          .map((p) => ({ ...p, organization: p.organization[0] })) as Project[]
+      )
 
       // Fetch created projects
       const { data: created, error: createdError } = await supabase
@@ -60,9 +65,16 @@ const UserProfile = () => {
       // Fetch staked projects
       const stakes = await projectService.getStakedProjects(address)
       setStakedProjects(
-        stakes.map((stake) => stake.purchase.project).filter(Boolean)
+        stakes
+          .flatMap((stake) => stake.purchase)
+          .flatMap((purchase) => purchase.project)
+          .filter((project) => project?.organization?.[0])
+          .map((project) => ({
+            ...project,
+            organization: project.organization[0],
+          })) as Project[]
       )
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error fetching user data:', error)
       toast.error('Failed to load profile data')
     } finally {
@@ -81,8 +93,12 @@ const UserProfile = () => {
       } else {
         throw new Error(result.error || 'Failed to stake project')
       }
-    } catch (error: any) {
-      toast.error(error.message)
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message)
+      } else {
+        toast.error('An unknown error occurred')
+      }
     }
   }
 
@@ -94,7 +110,9 @@ const UserProfile = () => {
       {Array.isArray(projects) &&
         projects.map((project) => {
           // Create a unique key combining type, project id, and a random string
-          const uniqueKey = `${type}-${project.id}-${Math.random().toString(36).substr(2, 9)}`
+          const uniqueKey = `${type}-${project.id}-${Math.random()
+            .toString(36)
+            .substr(2, 9)}`
 
           return (
             <div
@@ -103,10 +121,11 @@ const UserProfile = () => {
             >
               <div className='relative aspect-square'>
                 {project.organization?.logo_url ? (
-                  <img
+                  <Image
                     src={project.organization.logo_url}
                     alt={project.title}
-                    className='h-full w-full object-cover'
+                    layout='fill'
+                    objectFit='cover'
                   />
                 ) : (
                   <div className='h-full w-full bg-gray-800' />

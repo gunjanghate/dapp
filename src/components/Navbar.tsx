@@ -11,7 +11,10 @@ const Navbar = () => {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
-  const handleConnectWallet = async (walletType: string, manualAddress?: string) => {
+  const handleConnectWallet = async (
+    walletType: string,
+    manualAddress?: string
+  ) => {
     try {
       await connect(walletType, manualAddress)
       setIsWalletModalOpen(false)
@@ -82,7 +85,10 @@ const Navbar = () => {
           </div>
           <div className='hidden md:block'>
             <div className='ml-4 flex items-center space-x-4 md:ml-6'>
-              <Link href='/create-project' className='rounded-md bg-green-500 px-4 py-2 text-sm font-medium text-black hover:bg-green-600'>
+              <Link
+                href='/create-project'
+                className='rounded-md bg-green-500 px-4 py-2 text-sm font-medium text-black hover:bg-green-600'
+              >
                 Create Project
               </Link>
               {walletAddress ? (
@@ -110,7 +116,7 @@ const Navbar = () => {
           <div className='flex items-center md:hidden'>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className='inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white'
+              className='inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:ring-2 focus:ring-white focus:outline-none focus:ring-inset'
             >
               {isMenuOpen ? (
                 <X className='h-6 w-6' />
@@ -125,17 +131,47 @@ const Navbar = () => {
       {isMenuOpen && (
         <div className='border-t border-gray-700 bg-[#111111] md:hidden'>
           <div className='space-y-1 px-2 pt-2 pb-3 sm:px-3'>
-            <Link href='/about' className='block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'>About</Link>
-            <Link href='/projects' className='block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'>Projects</Link>
-            <Link href='/organizations' className='block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'>Organizations</Link>
-            <Link href='/leaderboard' className='block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'>Leaderboard</Link>
-            <Link href='/stake' className='block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'>Stake</Link>
-            <Link href='/create-project' className='block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'>Create Project</Link>
+            <Link
+              href='/about'
+              className='block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'
+            >
+              About
+            </Link>
+            <Link
+              href='/projects'
+              className='block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'
+            >
+              Projects
+            </Link>
+            <Link
+              href='/organizations'
+              className='block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'
+            >
+              Organizations
+            </Link>
+            <Link
+              href='/leaderboard'
+              className='block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'
+            >
+              Leaderboard
+            </Link>
+            <Link
+              href='/stake'
+              className='block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'
+            >
+              Stake
+            </Link>
+            <Link
+              href='/create-project'
+              className='block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'
+            >
+              Create Project
+            </Link>
             {!walletAddress && (
               <button
                 onClick={() => {
-                  setIsWalletModalOpen(true);
-                  setIsMenuOpen(false);
+                  setIsWalletModalOpen(true)
+                  setIsMenuOpen(false)
                 }}
                 disabled={isConnecting}
                 className='block w-full rounded-md px-3 py-2 text-left text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-green-400'
@@ -149,14 +185,14 @@ const Navbar = () => {
               <div className='flex items-center px-5'>
                 <User className='h-8 w-8 text-gray-400' />
                 <div className='ml-3'>
-                  <div className='text-base font-medium leading-none text-white'>{`${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}`}</div>
+                  <div className='text-base leading-none font-medium text-white'>{`${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}`}</div>
                 </div>
               </div>
               <div className='mt-3 space-y-1 px-2'>
                 <button
                   onClick={() => {
-                    handleDisconnect();
-                    setIsMenuOpen(false);
+                    handleDisconnect()
+                    setIsMenuOpen(false)
                   }}
                   className='block w-full rounded-md px-3 py-2 text-left text-base font-medium text-gray-400 hover:bg-gray-700 hover:text-white'
                 >

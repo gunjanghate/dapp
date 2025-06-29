@@ -31,7 +31,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <WalletProvider>
-          <Toaster position="bottom-right" />
+          <Toaster position='bottom-right' />
           <Navbar />
           {children}
         </WalletProvider>

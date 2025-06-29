@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 import { useWallet } from '../../context/WalletContext'
 import { depositVault } from '../../lib/contracts/depositVault'
 import { generateProfileImage } from '../../lib/generateImage'
-import { projectService } from '../../lib/projectService'
 import { FEATURES } from '../../lib/config'
 
 interface ImpactAction {
@@ -175,14 +175,16 @@ const CreateNonProfitProfile = () => {
       }
 
       setCurrentStep(3)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Deploy error:', error)
-      if (error.code === 'ACTION_REJECTED') {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to deploy'
+      if (errorMessage.includes('ACTION_REJECTED')) {
         toast.error('Transaction rejected by user')
-      } else if (error.message.includes('insufficient funds')) {
+      } else if (errorMessage.includes('insufficient funds')) {
         toast.error('Insufficient funds in wallet')
       } else {
-        toast.error(error.message || 'Failed to deploy')
+        toast.error(errorMessage)
       }
     } finally {
       setIsProcessing(false)
@@ -259,243 +261,333 @@ const CreateNonProfitProfile = () => {
         }
       }
 
-      toast.success('Projects created successfully!')
-      router.push('/projects')
-    } catch (error: any) {
+      toast.success('Profile and projects created successfully!')
+      router.push(`/organization-profile?id=${orgId}`)
+    } catch (error: unknown) {
       console.error('Submission error:', error)
-      toast.error(error.message || 'Failed to create projects')
+      toast.error(
+        error instanceof Error ? error.message : 'An unknown error occurred'
+      )
     } finally {
       setLoading(false)
     }
   }
 
-  return (
-    <div className='min-h-screen bg-black px-4 py-12 text-white sm:px-6 lg:px-8'>
-      <div className='mx-auto max-w-5xl'>
-        <h1 className='mb-12 text-6xl font-bold text-[#B4F481]'>
-          TOKENIZE YOUR REAL-WORLD IMPACT
-        </h1>
+  const handleProofOfImpactChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setProofOfImpact(e.target.value)
+  }
 
-        <div className='grid grid-cols-1 gap-8 lg:grid-cols-3'>
-          {/* Impact Product Data Form */}
-          <div className='rounded-lg border border-gray-800 bg-black/50 p-6'>
-            <h2 className='mb-6 text-xl font-semibold'>
-              IMPACT PRODUCT DATA FORM
-            </h2>
+  const handleTechnicalSkillLevelChange = (level: string) => {
+    setTechnicalSkillLevel(level)
+  }
 
-            <div className='space-y-6'>
-              <div>
-                <label className='block text-sm text-gray-400'>
-                  1. Organization Type
-                </label>
-                <select
-                  name='organizationType'
-                  value={formData.organizationType}
-                  onChange={handleInputChange}
-                  className='mt-1 block w-full rounded border-gray-700 bg-gray-900 text-white'
-                >
-                  <option value='Foundation'>Foundation</option>
-                  <option value='NGO'>NGO</option>
-                  <option value='Social Enterprise'>Social Enterprise</option>
-                </select>
-              </div>
+  // Step 2 handlers
+  const handlePriceChangeStep2 = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPrice(e.target.value)
+  }
 
-              <div>
-                <label className='block text-sm text-gray-400'>
-                  2. Entity Name
-                </label>
-                <input
-                  type='text'
-                  name='entityName'
-                  value={formData.entityName}
-                  onChange={handleInputChange}
-                  className='mt-1 block w-full rounded border-gray-700 bg-gray-900 text-white'
-                  placeholder='Your organization name'
-                />
-              </div>
+  const handleImpactValueChangeStep2 = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setImpactValue(Number(e.target.value))
+  }
 
-              {impactActions.map((action, index) => (
-                <div key={index} className='space-y-4'>
-                  <label className='block text-sm text-gray-400'>
-                    3. Action Taken #{index + 1}
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <>
+            <div className='lg:col-span-2'>
+              {/* Impact Product Data Form */}
+              <div className='rounded-lg border border-gray-800 bg-black/50 p-6'>
+                <h2 className='mb-6 text-xl font-semibold'>
+                  IMPACT PRODUCT DATA
+                </h2>
+
+                <div className='mb-6'>
+                  <label
+                    htmlFor='entityName'
+                    className='mb-2 block font-medium text-white'
+                  >
+                    Entity Name
                   </label>
                   <input
+                    id='entityName'
                     type='text'
-                    value={action.title}
-                    onChange={(e) =>
-                      handleImpactActionChange(index, 'title', e.target.value)
-                    }
-                    className='block w-full rounded border-gray-700 bg-gray-900 text-white'
-                    placeholder='Action title'
+                    name='entityName'
+                    value={formData.entityName}
+                    onChange={handleInputChange}
+                    className='mt-1 block w-full rounded border-gray-700 bg-gray-900 text-white'
+                    placeholder='Name of your Foundation, DAO, etc'
                   />
-                  <div className='space-y-4 pl-4'>
-                    <div>
-                      <label className='block text-sm text-gray-400'>
-                        3.1 Achieved Impact
-                      </label>
-                      <input
-                        type='text'
-                        value={action.achievedImpact}
-                        onChange={(e) =>
-                          handleImpactActionChange(
-                            index,
-                            'achievedImpact',
-                            e.target.value
-                          )
-                        }
-                        className='block w-full rounded border-gray-700 bg-gray-900 text-white'
-                        placeholder='e.g., 10 trees planted'
-                      />
-                    </div>
-                    <div>
-                      <label className='block text-sm text-gray-400'>
-                        3.2 Period
-                      </label>
-                      <input
-                        type='text'
-                        value={action.period}
-                        onChange={(e) =>
-                          handleImpactActionChange(
-                            index,
-                            'period',
-                            e.target.value
-                          )
-                        }
-                        className='block w-full rounded border-gray-700 bg-gray-900 text-white'
-                        placeholder='e.g., from 10.2023 to 10.2024'
-                      />
-                    </div>
-                    <div>
-                      <label className='block text-sm text-gray-400'>
-                        3.3 Area of Impact
-                      </label>
-                      <input
-                        type='text'
-                        value={action.location}
-                        onChange={(e) =>
-                          handleImpactActionChange(
-                            index,
-                            'location',
-                            e.target.value
-                          )
-                        }
-                        className='block w-full rounded border-gray-700 bg-gray-900 text-white'
-                        placeholder='Location'
-                      />
+                </div>
+
+                <div className='mb-6'>
+                  <label
+                    htmlFor='organizationType'
+                    className='mb-2 block font-medium text-white'
+                  >
+                    Organization Type
+                  </label>
+                  <select
+                    id='organizationType'
+                    name='organizationType'
+                    value={formData.organizationType}
+                    onChange={handleInputChange}
+                    className='mt-1 block w-full rounded border-gray-700 bg-gray-900 text-white'
+                  >
+                    <option>Foundation</option>
+                    <option>Company</option>
+                    <option>DAO</option>
+                    <option>Hybrid</option>
+                  </select>
+                </div>
+
+                {impactActions.map((action, index) => (
+                  <div
+                    key={index}
+                    className='mb-4 rounded-lg border border-gray-700 p-4'
+                  >
+                    <h3 className='mb-2 font-medium'>
+                      Impact Action #{index + 1}
+                    </h3>
+                    <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+                      <div>
+                        <label
+                          htmlFor={`title-${index}`}
+                          className='text-sm text-gray-400'
+                        >
+                          Title
+                        </label>
+                        <input
+                          id={`title-${index}`}
+                          type='text'
+                          value={action.title}
+                          onChange={(e) =>
+                            handleImpactActionChange(
+                              index,
+                              'title',
+                              e.target.value
+                            )
+                          }
+                          className='mt-1 block w-full rounded border-gray-600 bg-gray-800 text-white'
+                          placeholder='e.g., Planted Trees'
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor={`achievedImpact-${index}`}
+                          className='text-sm text-gray-400'
+                        >
+                          Achieved Impact
+                        </label>
+                        <input
+                          id={`achievedImpact-${index}`}
+                          type='text'
+                          value={action.achievedImpact}
+                          onChange={(e) =>
+                            handleImpactActionChange(
+                              index,
+                              'achievedImpact',
+                              e.target.value
+                            )
+                          }
+                          className='mt-1 block w-full rounded border-gray-600 bg-gray-800 text-white'
+                          placeholder='e.g., 10,000'
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor={`period-${index}`}
+                          className='text-sm text-gray-400'
+                        >
+                          Period
+                        </label>
+                        <input
+                          id={`period-${index}`}
+                          type='text'
+                          value={action.period}
+                          onChange={(e) =>
+                            handleImpactActionChange(
+                              index,
+                              'period',
+                              e.target.value
+                            )
+                          }
+                          className='mt-1 block w-full rounded border-gray-600 bg-gray-800 text-white'
+                          placeholder='e.g., Q3 2023'
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor={`location-${index}`}
+                          className='text-sm text-gray-400'
+                        >
+                          Location
+                        </label>
+                        <input
+                          id={`location-${index}`}
+                          type='text'
+                          value={action.location}
+                          onChange={(e) =>
+                            handleImpactActionChange(
+                              index,
+                              'location',
+                              e.target.value
+                            )
+                          }
+                          className='mt-1 block w-full rounded border-gray-600 bg-gray-800 text-white'
+                          placeholder='e.g., Amazon Rainforest'
+                        />
+                      </div>
                     </div>
                   </div>
+                ))}
+
+                <button
+                  onClick={addImpactAction}
+                  className='text-sm text-[#B4F481] hover:underline'
+                >
+                  + Add another impact action
+                </button>
+
+                <div className='mt-6'>
+                  <label
+                    htmlFor='proofOfImpact'
+                    className='mb-2 block font-medium text-white'
+                  >
+                    Proof of Impact
+                  </label>
+                  <input
+                    id='proofOfImpact'
+                    type='text'
+                    value={proofOfImpact}
+                    onChange={handleProofOfImpactChange}
+                    className='mt-1 block w-full rounded border-gray-700 bg-gray-900 text-white'
+                    placeholder='URL to proof'
+                  />
                 </div>
-              ))}
+
+                <div className='mt-6'>
+                  <div
+                    id='tech-skill-label'
+                    className='mb-2 block font-medium text-white'
+                  >
+                    What is your team&apos;s technical skill level?
+                  </div>
+                  <div
+                    role='group'
+                    aria-labelledby='tech-skill-label'
+                    className='flex space-x-2 rounded-lg bg-gray-900 p-1'
+                  >
+                    {['Low', 'Medium', 'High'].map((level) => (
+                      <button
+                        key={level}
+                        onClick={() =>
+                          handleTechnicalSkillLevelChange(level.toLowerCase())
+                        }
+                        className={`w-full rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                          technicalSkillLevel === level.toLowerCase()
+                            ? 'bg-[#B4F481] text-black'
+                            : 'bg-transparent text-gray-400 hover:bg-gray-800'
+                        }`}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Collection Preview */}
+            <div className='rounded-lg border border-gray-800 bg-black/50 p-6'>
+              <h2 className='mb-6 text-xl font-semibold'>COLLECTION PREVIEW</h2>
+
+              <div className='relative aspect-square w-full overflow-hidden rounded-lg bg-gray-900'>
+                {generatedImageUrl ? (
+                  <Image
+                    src={generatedImageUrl}
+                    alt='Generated profile image'
+                    layout='fill'
+                    objectFit='cover'
+                    unoptimized={isDevelopment}
+                  />
+                ) : (
+                  <div className='flex h-full w-full items-center justify-center'>
+                    <Loader2 className='h-8 w-8 animate-spin text-gray-500' />
+                  </div>
+                )}
+              </div>
+
+              <div className='mt-4'>
+                <p className='text-lg font-bold'>
+                  {formData.entityName || 'Your Org Name'}
+                </p>
+                <p className='text-sm text-gray-400'>
+                  {impactActions[0]?.title || 'Your Impact Title'}
+                </p>
+              </div>
 
               <button
-                onClick={addImpactAction}
-                className='text-sm text-[#B4F481] hover:text-[#9FE070]'
+                onClick={generateImage}
+                disabled={isGeneratingImage || !formData.entityName}
+                className='mt-6 w-full rounded bg-[#B4F481] px-4 py-2 text-black transition-colors hover:bg-[#9FE070] disabled:cursor-not-allowed disabled:opacity-50'
               >
-                + ADD ACTION
+                {isGeneratingImage ? (
+                  <Loader2 className='mx-auto h-5 w-5 animate-spin' />
+                ) : (
+                  'Generate Image'
+                )}
               </button>
 
-              <div>
-                <label className='block text-sm text-gray-400'>
-                  4. Link to Proof of Impact
-                </label>
-                <input
-                  type='text'
-                  value={proofOfImpact}
-                  onChange={(e) => setProofOfImpact(e.target.value)}
-                  className='mt-1 block w-full rounded border-gray-700 bg-gray-900 text-white'
-                  placeholder='URL to proof'
-                />
-              </div>
-
-              <div>
-                <p className='mb-2 text-sm text-gray-400'>
-                  Does this action require specialized technical skills or
-                  scientific knowledge?
-                </p>
-                <div className='flex space-x-4'>
-                  {['Low', 'Medium', 'High'].map((level) => (
-                    <button
-                      key={level}
-                      onClick={() =>
-                        setTechnicalSkillLevel(level.toLowerCase())
-                      }
-                      className={`rounded px-4 py-1 ${
-                        technicalSkillLevel === level.toLowerCase()
-                          ? 'bg-[#B4F481] text-black'
-                          : 'bg-gray-800 text-gray-300'
-                      }`}
-                    >
-                      {level}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <button
+                onClick={handleTokenize}
+                disabled={isProcessing}
+                className='mt-4 w-full rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50'
+              >
+                Tokenize
+              </button>
             </div>
-
-            <button
-              onClick={handleTokenize}
-              disabled={isProcessing}
-              className='mt-8 w-full rounded-md bg-[#B4F481] py-2 font-medium text-black hover:bg-[#9FE070] disabled:cursor-not-allowed disabled:opacity-50'
-            >
-              {isProcessing ? (
-                <span className='flex items-center justify-center'>
-                  <Loader2 className='mr-3 -ml-1 h-5 w-5 animate-spin' />
-                  Processing...
-                </span>
-              ) : (
-                'TOKENIZE'
-              )}
-            </button>
-          </div>
-
-          {/* Collection Preview */}
+          </>
+        )
+      case 2:
+        return (
           <div className='rounded-lg border border-gray-800 bg-black/50 p-6'>
-            <h2 className='mb-6 text-xl font-semibold'>COLLECTION PREVIEW</h2>
-            <div className='relative mb-6 flex aspect-square items-center justify-center rounded-lg bg-gray-900'>
-              {generatedImageUrl ? (
-                <img
-                  src={generatedImageUrl}
-                  alt='Generated Impact'
-                  className='h-full w-full rounded-lg object-cover'
-                />
-              ) : (
-                <span className='text-lg text-[#B4F481]'>
-                  {isGeneratingImage
-                    ? 'GENERATING...'
-                    : FEATURES.IMAGE_GENERATION
-                      ? 'GENERATE'
-                      : 'PLACEHOLDER IMAGE'}
-                </span>
-              )}
+            <h2 className='mb-6 text-xl font-semibold'>Set Your Price</h2>
+
+            <div className='mb-4'>
+              <label
+                htmlFor='price'
+                className='mb-2 block font-medium text-white'
+              >
+                Price (ETH)
+              </label>
+              <input
+                id='price'
+                type='text'
+                value={price}
+                onChange={handlePriceChangeStep2}
+                className='block w-full rounded border-gray-700 bg-gray-900 text-white'
+              />
             </div>
 
-            <div className='space-y-4'>
-              <div>
-                <label className='block text-sm text-gray-400'>
-                  1. Price (ETH)
-                </label>
-                <div className='flex items-center space-x-2'>
-                  <input
-                    type='text'
-                    value={price}
-                    readOnly
-                    className='block w-full rounded border-gray-700 bg-gray-900 text-white'
-                  />
-                  <span className='text-gray-400'>ETH</span>
-                </div>
-              </div>
-
-              <div>
-                <label className='block text-sm text-gray-400'>
-                  2. Impact value
-                </label>
-                <input
-                  type='text'
-                  className='block w-full rounded border-gray-700 bg-gray-900 text-white'
-                  value={impactValue}
-                  readOnly
-                />
-              </div>
+            <div className='mb-6'>
+              <label
+                htmlFor='impactValue'
+                className='mb-2 block font-medium text-white'
+              >
+                Impact Value
+              </label>
+              <input
+                id='impactValue'
+                type='number'
+                className='block w-full rounded border-gray-700 bg-gray-900 text-white'
+                value={impactValue}
+                onChange={handleImpactValueChangeStep2}
+              />
             </div>
 
             <button
@@ -513,8 +605,9 @@ const CreateNonProfitProfile = () => {
               )}
             </button>
           </div>
-
-          {/* List for Sale */}
+        )
+      case 3:
+        return (
           <div className='rounded-lg border border-gray-800 bg-black/50 p-6'>
             <h2 className='mb-6 text-xl font-semibold'>LIST FOR SALE</h2>
             <p className='mb-6 text-gray-400'>
@@ -548,6 +641,21 @@ const CreateNonProfitProfile = () => {
               </button>
             </div>
           </div>
+        )
+      default:
+        return null
+    }
+  }
+
+  return (
+    <div className='min-h-screen bg-black px-4 py-12 text-white sm:px-6 lg:px-8'>
+      <div className='mx-auto max-w-5xl'>
+        <h1 className='mb-12 text-6xl font-bold text-[#B4F481]'>
+          TOKENIZE YOUR REAL-WORLD IMPACT
+        </h1>
+
+        <div className='grid grid-cols-1 gap-8 lg:grid-cols-3'>
+          {renderStep()}
         </div>
       </div>
     </div>

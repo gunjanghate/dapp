@@ -43,8 +43,13 @@ class DepositVaultService {
       })
 
       return tx
-    } catch (error: any) {
-      if (error.code === 'ACTION_REJECTED') {
+    } catch (error: unknown) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'ACTION_REJECTED'
+      ) {
         throw new Error('Transaction rejected by user')
       }
       throw error

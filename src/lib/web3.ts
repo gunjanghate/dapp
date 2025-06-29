@@ -1,5 +1,4 @@
 import { ethers } from 'ethers'
-import { FEATURES } from './config'
 
 // Base Testnet configuration
 export const BASE_TESTNET = {
@@ -40,11 +39,19 @@ const getEthereumProvider = () => {
     // If we have multiple providers, prioritize them
     const providers = ethereum.providers
     const metamask = providers.find(
-      (p: any) => p.isMetaMask && !p.isBraveWallet
+      (p: { isMetaMask: boolean; isBraveWallet: boolean }) =>
+        p.isMetaMask && !p.isBraveWallet
     )
-    const coinbase = providers.find((p: any) => p.isCoinbaseWallet)
-    const trust = providers.find((p: any) => p.isTrust || p.isTrustWallet)
-    const brave = providers.find((p: any) => p.isBraveWallet)
+    const coinbase = providers.find(
+      (p: { isCoinbaseWallet: boolean }) => p.isCoinbaseWallet
+    )
+    const trust = providers.find(
+      (p: { isTrust: boolean; isTrustWallet: boolean }) =>
+        p.isTrust || p.isTrustWallet
+    )
+    const brave = providers.find(
+      (p: { isBraveWallet: boolean }) => p.isBraveWallet
+    )
 
     // Return the first available provider in order of preference
     return metamask || coinbase || trust || brave || providers[0]
@@ -127,7 +134,9 @@ export function getAvailableWallets() {
   }))
 }
 
-async function switchToBaseTestnet(provider: any): Promise<boolean> {
+async function switchToBaseTestnet(provider: {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
+}): Promise<boolean> {
   try {
     // First try to switch to Base Sepolia
     await provider.request({
@@ -135,9 +144,15 @@ async function switchToBaseTestnet(provider: any): Promise<boolean> {
       params: [{ chainId: BASE_TESTNET.chainId }],
     })
     return true
-  } catch (switchError: any) {
+  } catch (switchError: unknown) {
     // This error code indicates that the chain has not been added to MetaMask
-    if (switchError.code === 4902 || switchError.code === -32603) {
+    if (
+      switchError &&
+      typeof switchError === 'object' &&
+      'code' in switchError &&
+      ((switchError as { code: number }).code === 4902 ||
+        (switchError as { code: number }).code === -32603)
+    ) {
       try {
         await provider.request({
           method: 'wallet_addEthereumChain',
@@ -159,14 +174,24 @@ async function switchToBaseTestnet(provider: any): Promise<boolean> {
         })
 
         return true
-      } catch (addError: any) {
-        if (addError.code === 4001) {
+      } catch (addError: unknown) {
+        if (
+          addError &&
+          typeof addError === 'object' &&
+          'code' in addError &&
+          (addError as { code: number }).code === 4001
+        ) {
           throw new Error('Please add Base Sepolia network to continue')
         }
         throw new Error('Failed to add Base Sepolia network. Please try again.')
       }
     }
-    if (switchError.code === 4001) {
+    if (
+      switchError &&
+      typeof switchError === 'object' &&
+      'code' in switchError &&
+      (switchError as { code: number }).code === 4001
+    ) {
       throw new Error('Please switch to Base Sepolia network to continue')
     }
     throw new Error(
@@ -177,7 +202,7 @@ async function switchToBaseTestnet(provider: any): Promise<boolean> {
 
 export async function connectWallet(
   walletType: string = 'metamask',
-  manualAddress?: string
+  _manualAddress?: string
 ): Promise<string | null> {
   // Reset provider and connection attempts
   provider = null
@@ -234,17 +259,26 @@ export async function connectWallet(
       // Reset connection attempts on success
       connectionAttempts = 0
       return accounts[0]
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle user rejection specifically
-      if (error.code === 4001) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        (error as { code: number }).code === 4001
+      ) {
         connectionAttempts = 0 // Reset attempts for user rejections
         throw new Error('Connection rejected by user')
       }
       throw error
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Reset connection attempts for specific errors
-    if (error.code === 4001 || error.message.includes('Please install')) {
+    if (
+      error instanceof Error &&
+      (error.message.includes('Please install') ||
+        (error as { code?: number }).code === 4001)
+    ) {
       connectionAttempts = 0
     }
     console.error('Wallet connection error:', error)
@@ -254,49 +288,47 @@ export async function connectWallet(
 
 export function subscribeToAccountChanges(
   callback: (account: string | null) => void
-): void {
+): () => void {
   const ethereum = getEthereumProvider()
-  if (ethereum) {
-    ethereum.on('accountsChanged', (accounts: string[]) => {
-      callback(accounts[0] || null)
-    })
 
-    ethereum.on('chainChanged', async () => {
-      provider = null
-      connectionAttempts = 0
-      window.location.reload()
-    })
+  if (ethereum && typeof ethereum.on === 'function') {
+    const handleAccountsChanged = (accounts: string[]) => {
+      console.log('Detected account change:', accounts)
+      if (accounts.length > 0) {
+        callback(accounts[0])
+      } else {
+        callback(null)
+      }
+    }
 
-    ethereum.on('disconnect', () => {
-      provider = null
-      connectionAttempts = 0
-      callback(null)
-    })
+    ethereum.on('accountsChanged', handleAccountsChanged)
+
+    // Return a function to unsubscribe
+    return () => {
+      if (ethereum && typeof ethereum.removeListener === 'function') {
+        ethereum.removeListener('accountsChanged', handleAccountsChanged)
+      }
+    }
   }
+
+  // Return an empty function if no provider is found
+  return () => {}
 }
 
-export function disconnectWallet(): Promise<void> {
-  return new Promise((resolve) => {
-    try {
-      provider = null
-      connectionAttempts = 0
+export async function disconnectWallet(): Promise<void> {
+  // Reset provider
+  provider = null
+  connectionAttempts = 0
 
-      // Clear any stored wallet state
-      const ethereum = getEthereumProvider()
-      if (ethereum) {
-        ethereum.removeAllListeners?.()
-      }
+  // Clear any stored wallet state
+  const ethereum = getEthereumProvider()
+  if (ethereum) {
+    ethereum.removeAllListeners?.()
+  }
 
-      // Clear any stored provider state
-      localStorage.removeItem('walletconnect')
-      localStorage.removeItem('WALLETCONNECT_DEEPLINK_CHOICE')
-
-      resolve()
-    } catch (error) {
-      console.error('Error disconnecting wallet:', error)
-      resolve() // Resolve anyway to ensure the UI updates
-    }
-  })
+  // Clear any stored provider state
+  localStorage.removeItem('walletconnect')
+  localStorage.removeItem('WALLETCONNECT_DEEPLINK_CHOICE')
 }
 
 export function getProvider(): ethers.BrowserProvider | null {

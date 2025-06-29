@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { X, Wallet, AlertCircle } from 'lucide-react'
 import { getAvailableWallets } from '../lib/web3'
 import { FEATURES } from '../lib/config'
-import toast from 'react-hot-toast'
 
 interface WalletModalProps {
   isOpen: boolean
@@ -21,13 +20,9 @@ const WalletModal: React.FC<WalletModalProps> = ({
   const [manualAddress, setManualAddress] = useState(DEFAULT_WALLET)
   const [error, setError] = useState('')
   const [connecting, setConnecting] = useState(false)
-  const [availableWallets, setAvailableWallets] = useState<
-    Array<{ id: string; name: string; icon: string }>
-  >([])
 
   useEffect(() => {
     if (isOpen) {
-      setAvailableWallets(getAvailableWallets())
       setError('')
       setConnecting(false)
     }
@@ -49,12 +44,16 @@ const WalletModal: React.FC<WalletModalProps> = ({
 
     try {
       await onSelectWallet(walletId)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Wallet connection error:', err)
-      if (err.message.includes('Please install')) {
-        setError(`${err.message}. Click to install.`)
+      if (err instanceof Error) {
+        if (err.message.includes('Please install')) {
+          setError(`${err.message}. Click to install.`)
+        } else {
+          setError(err.message || 'Failed to connect wallet')
+        }
       } else {
-        setError(err.message || 'Failed to connect wallet')
+        setError('An unknown error occurred')
       }
     } finally {
       setConnecting(false)
@@ -74,6 +73,10 @@ const WalletModal: React.FC<WalletModalProps> = ({
     <div
       className='fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm'
       onClick={handleBackdropClick}
+      onKeyDown={(e) => e.key === 'Escape' && onClose()}
+      role='dialog'
+      aria-modal='true'
+      tabIndex={-1}
     >
       <div className='relative mx-4 w-full max-w-sm rounded-xl bg-gray-900 shadow-2xl'>
         <div className='p-4'>
@@ -184,7 +187,8 @@ const WalletModal: React.FC<WalletModalProps> = ({
           )}
 
           <p className='mt-4 text-center text-xs text-gray-500'>
-            By connecting a wallet, you agree to Regen Bazaar's Terms of Service
+            By connecting a wallet, you agree to Regen Bazaar&apos;s Terms of
+            Service
           </p>
         </div>
       </div>

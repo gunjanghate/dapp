@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { supabase } from '../../lib/supabase'
+import Image from 'next/image'
 import { getProvider } from '../../lib/web3'
-import { Loader2, Lock, Calendar, ArrowUpRight, Shield } from 'lucide-react'
+import { Loader2, Shield } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { projectService } from '../../lib/projectService'
 import { depositVault } from '../../lib/contracts/depositVault'
@@ -20,15 +20,15 @@ interface AvailableProduct {
   }
 }
 
-interface StakedImpactProduct {
-  id: string
-  number: string
-  iv_locked: number
-  apr: number
-  voting_power: number
-  lock_end_date: string
-  status: string
-}
+// interface StakedImpactProduct {
+//   id: string
+//   number: string
+//   iv_locked: number
+//   apr: number
+//   voting_power: number
+//   lock_end_date: string
+//   status: string
+// }
 
 interface StakedToken {
   id: string
@@ -40,14 +40,25 @@ interface StakedToken {
   status: string
 }
 
+interface Stake {
+  id: string
+  iv_locked: number
+  apr: number
+  voting_power: number
+  lock_end_date: string
+  status: string
+  purchase: {
+    project: {
+      id: string
+    }
+  }
+}
+
 const Stake = () => {
   const [loading, setLoading] = useState(true)
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [availableProducts, setAvailableProducts] = useState<
     AvailableProduct[]
-  >([])
-  const [stakedImpactProducts, setStakedImpactProducts] = useState<
-    StakedImpactProduct[]
   >([])
   const [stakedTokens, setStakedTokens] = useState<StakedToken[]>([])
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
@@ -64,7 +75,6 @@ const Stake = () => {
             setWalletAddress(accounts[0])
             await Promise.all([
               fetchAvailableProducts(accounts[0]),
-              fetchStakedImpactProducts(accounts[0]),
               fetchStakedTokens(accounts[0]),
             ])
           }
@@ -87,57 +97,36 @@ const Stake = () => {
 
       // Filter to only unstaked purchases and transform to the required format
       const availableProducts = purchases
-        .filter((purchase) => !purchase.isStaked && purchase.project && purchase.project.length > 0)
+        .filter(
+          (purchase) =>
+            !purchase.isStaked &&
+            purchase.project &&
+            purchase.project.length > 0
+        )
         .map((purchase) => {
-          const project = purchase.project[0];
+          const project = purchase.project[0]
           return {
             id: project.id,
             title: project.title,
             description: project.description,
             impact_value: project.impact_value,
             purchase_id: purchase.id,
-            organization: project.organization && project.organization.length > 0 ? project.organization[0] : null,
-          };
+            organization:
+              project.organization && project.organization.length > 0
+                ? project.organization[0]
+                : null,
+          }
         })
-        .filter(Boolean);
+        .filter(Boolean)
 
-      setAvailableProducts(availableProducts as AvailableProduct[]);
+      setAvailableProducts(availableProducts as AvailableProduct[])
     } catch (error) {
       console.error('Error fetching available products:', error)
       toast.error('Failed to load available products')
     }
   }
 
-  const fetchStakedImpactProducts = async (address: string) => {
-    try {
-      const stakes = await projectService.getStakedProjects(address)
-
-      // Transform stake data into the required format
-      const stakedProducts = stakes.map((stake: any) => ({
-        id: stake.id,
-        number: stake.purchase.project.id.slice(0, 6), // Use first 6 chars of project ID as number
-        iv_locked: stake.iv_locked,
-        apr: stake.apr,
-        voting_power: stake.voting_power,
-        lock_end_date: new Date(stake.lock_end_date).toLocaleDateString(
-          'en-US',
-          {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          }
-        ),
-        status: stake.status,
-      }))
-
-      setStakedImpactProducts(stakedProducts)
-    } catch (error) {
-      console.error('Error fetching staked impact products:', error)
-      toast.error('Failed to load staked impact products')
-    }
-  }
-
-  const fetchStakedTokens = async (address: string) => {
+  const fetchStakedTokens = async (_address: string) => {
     try {
       // For now, we'll keep using simulated data for tokens
       // This will be replaced with actual token staking data in the future
@@ -185,33 +174,46 @@ const Stake = () => {
         loading: 'Confirming stake transaction...',
         success: 'Stake deposit confirmed!',
         error: 'Stake transaction failed',
-      });
+      })
 
       // Then create the stake record in the database with the transaction hash
       if (receipt) {
-        const result = await projectService.stakeProject(purchaseId, receipt.hash);
+        const result = await projectService.stakeProject(
+          purchaseId,
+          receipt.hash
+        )
 
         if (result.success) {
           // Refresh both available and staked lists
           if (walletAddress) {
             await Promise.all([
               fetchAvailableProducts(walletAddress),
-              fetchStakedImpactProducts(walletAddress),
-            ]);
+              fetchStakedTokens(walletAddress),
+            ])
           }
-          toast.success('Successfully staked');
+          toast.success('Successfully staked')
         } else {
-          throw new Error(result.error || 'Failed to stake product');
+          throw new Error(result.error || 'Failed to stake product')
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error staking product:', error)
-      if (error.code === 'ACTION_REJECTED') {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'ACTION_REJECTED'
+      ) {
         toast.error('Transaction rejected by user')
-      } else if (error.message.includes('insufficient funds')) {
+      } else if (
+        error instanceof Error &&
+        error.message.includes('insufficient funds')
+      ) {
         toast.error('Insufficient funds in wallet')
       } else {
-        toast.error(error.message || 'Failed to stake product')
+        toast.error(
+          error instanceof Error ? error.message : 'Failed to stake product'
+        )
       }
     } finally {
       setIsProcessing(false)
@@ -226,34 +228,24 @@ const Stake = () => {
       if (walletAddress) {
         await Promise.all([
           fetchAvailableProducts(walletAddress),
-          fetchStakedImpactProducts(walletAddress),
+          fetchStakedTokens(walletAddress),
         ])
       }
       toast.success('Successfully withdrawn')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error withdrawing stake:', error)
-      toast.error(error.message || 'Failed to withdraw')
+      toast.error(error instanceof Error ? error.message : 'Failed to withdraw')
     }
   }
 
-  const handleClaim = async (purchaseId: string) => {
-    try {
-      // Implement claim logic here
-      toast.success('Claim initiated')
-    } catch (error) {
-      console.error('Error claiming rewards:', error)
-      toast.error('Failed to claim rewards')
-    }
+  const handleClaim = async (_purchaseId: string) => {
+    // TODO: Implement claim logic
+    toast('Claim functionality not yet implemented.')
   }
 
-  const handleLock = async (purchaseId: string) => {
-    try {
-      // Implement lock logic here
-      toast.success('Lock initiated')
-    } catch (error) {
-      console.error('Error locking product:', error)
-      toast.error('Failed to lock product')
-    }
+  const handleLock = async (_purchaseId: string) => {
+    // TODO: Implement lock logic
+    toast('Lock functionality not yet implemented.')
   }
 
   if (loading) {
@@ -302,47 +294,48 @@ const Stake = () => {
               >
                 <div className='relative aspect-square'>
                   {product.organization?.logo_url ? (
-                    <img
+                    <Image
                       src={product.organization.logo_url}
                       alt={product.title}
-                      className='h-full w-full object-cover'
+                      layout='fill'
+                      objectFit='cover'
                     />
                   ) : (
                     <div className='flex h-full w-full items-center justify-center bg-gray-800'>
                       <Shield className='h-12 w-12 text-[#B4F481] opacity-50' />
                     </div>
                   )}
-                  {hoveredItem === `available-${product.purchase_id}` && (
-                    <div className='absolute inset-0 flex items-center justify-center gap-4 bg-black/75'>
-                      <button
-                        onClick={() => handleClaim(product.purchase_id)}
-                        className='rounded bg-[#1A2F1D] px-4 py-2 text-[#B4F481] transition-colors hover:bg-[#2A462C]'
-                      >
-                        Claim
-                      </button>
-                      <button
-                        onClick={() => handleStake(product.purchase_id)}
-                        disabled={isProcessing}
-                        className='rounded bg-[#1A2F1D] px-4 py-2 text-[#B4F481] transition-colors hover:bg-[#2A462C] disabled:opacity-50'
-                      >
-                        {isProcessing ? (
-                          <span className='flex items-center'>
-                            <Loader2 className='mr-2 -ml-1 h-4 w-4 animate-spin' />
-                            Staking...
-                          </span>
-                        ) : (
-                          'Stake'
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleLock(product.purchase_id)}
-                        className='rounded bg-[#1A2F1D] px-4 py-2 text-[#B4F481] transition-colors hover:bg-[#2A462C]'
-                      >
-                        Lock
-                      </button>
-                    </div>
-                  )}
                 </div>
+                {hoveredItem === `available-${product.purchase_id}` && (
+                  <div className='absolute inset-0 flex items-center justify-center gap-4 bg-black/75'>
+                    <button
+                      onClick={() => handleClaim(product.purchase_id)}
+                      className='rounded bg-[#1A2F1D] px-4 py-2 text-[#B4F481] transition-colors hover:bg-[#2A462C]'
+                    >
+                      Claim
+                    </button>
+                    <button
+                      onClick={() => handleStake(product.purchase_id)}
+                      disabled={isProcessing}
+                      className='rounded bg-[#1A2F1D] px-4 py-2 text-[#B4F481] transition-colors hover:bg-[#2A462C] disabled:opacity-50'
+                    >
+                      {isProcessing ? (
+                        <span className='flex items-center'>
+                          <Loader2 className='mr-2 -ml-1 h-4 w-4 animate-spin' />
+                          Staking...
+                        </span>
+                      ) : (
+                        'Stake'
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleLock(product.purchase_id)}
+                      className='rounded bg-[#1A2F1D] px-4 py-2 text-[#B4F481] transition-colors hover:bg-[#2A462C]'
+                    >
+                      Lock
+                    </button>
+                  </div>
+                )}
                 <div className='p-4'>
                   <h3 className='mb-2 font-medium text-white'>
                     {product.title}
@@ -361,66 +354,6 @@ const Stake = () => {
                       </p>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Staked Impact Products Section */}
-        <div className='mb-12'>
-          <h2 className='mb-6 bg-black p-4 text-xl font-semibold text-white'>
-            STAKED IMPACT PRODUCTS FOR $REBAZ APR REWARDS
-          </h2>
-          <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
-            {stakedImpactProducts.map((product) => (
-              <div
-                key={`staked-impact-${product.id}`}
-                className='relative rounded-lg border border-gray-800 bg-black p-6'
-                onMouseEnter={() =>
-                  setHoveredItem(`staked-impact-${product.id}`)
-                }
-                onMouseLeave={() => setHoveredItem(null)}
-              >
-                <div className='mb-6 flex items-start justify-between'>
-                  <span className='text-[#B4F481]'>#{product.number}</span>
-                  <span className='text-white'>IMPACT PRODUCT LOCK</span>
-                </div>
-
-                <div className='mb-6 grid grid-cols-3 gap-4'>
-                  <div>
-                    <p className='text-sm text-gray-500'>IV locked:</p>
-                    <p className='text-white'>{product.iv_locked}</p>
-                  </div>
-                  <div>
-                    <p className='text-sm text-gray-500'>APR:</p>
-                    <p className='text-[#B4F481]'>
-                      {product.apr}%{' '}
-                      <span className='text-gray-500'>REBAZ</span>
-                    </p>
-                  </div>
-                  <div>
-                    <p className='text-sm text-gray-500'>Voting power:</p>
-                    <p className='text-[#B4F481]'>
-                      {product.voting_power}{' '}
-                      <span className='text-gray-500'>voREBAZ</span>
-                    </p>
-                  </div>
-                </div>
-
-                <div className='flex items-center justify-between'>
-                  <p className='text-sm text-gray-500'>
-                    lock end date:{' '}
-                    <span className='text-white'>{product.lock_end_date}</span>
-                  </p>
-                  {hoveredItem === `staked-impact-${product.id}` && (
-                    <button
-                      onClick={() => handleWithdraw(product.id)}
-                      className='rounded bg-[#1A2F1D] px-4 py-2 text-[#B4F481] transition-colors hover:bg-[#2A462C]'
-                    >
-                      withdraw
-                    </button>
-                  )}
                 </div>
               </div>
             ))}

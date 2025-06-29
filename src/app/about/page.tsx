@@ -62,7 +62,7 @@ const About = () => {
             </h2>
             <p className='text-gray-300'>
               A world where every environmental and social impact initiative can
-              be easily funded, tracked, and verified. We're building the
+              be easily funded, tracked, and verified. We&apos;re building the
               infrastructure for the next generation of environmental
               conservation and social impact projects.
             </p>
@@ -95,9 +95,9 @@ const About = () => {
             Join Our Mission
           </h2>
           <p className='mx-auto mb-8 max-w-3xl text-xl text-gray-300'>
-            Whether you're an organization making an impact or an individual
-            looking to support environmental initiatives, there's a place for
-            you in our ecosystem.
+            Whether you&apos;re an organization making an impact or an
+            individual looking to support environmental initiatives,
+            there&apos;s a place for you in our ecosystem.
           </p>
           <button className='rounded-full bg-[#B4F481] px-8 py-4 text-lg font-semibold text-black transition-colors hover:bg-[#9FE070]'>
             Get Started Today
